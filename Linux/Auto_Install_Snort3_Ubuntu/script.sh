@@ -1,145 +1,182 @@
-# Install cmake
-sudo snap install cmake --classic
+#!/bin/bash
 
-# Install git
-sudo apt install git -y
+LOGFILE="install_log.txt"
+SNORT_BIN="/usr/local/snort/bin/snort"
 
-# Install g++
+# Function to log messages
+log_message() {
+    echo "$(date) : $1" | tee -a "$LOGFILE"
+}
+
+# Function to check command success and handle errors
+check_success() {
+    if [ $? -ne 0 ]; then
+        log_message "Error: $1"
+        echo -e "\033[1;31mError occurred: $1\033[0m" # Red color for error
+        exit 1
+    else
+        log_message "Success: $1"
+    fi
+}
+
+# Function to download files only if they don't exist
+safe_wget() {
+    URL=$1
+    FILE=$2
+    if [ -f "$FILE" ]; then
+        log_message "File $FILE already exists. Skipping download."
+    else
+        log_message "Downloading $FILE..."
+        wget "$URL" -O "$FILE" | tee -a "$LOGFILE"
+        check_success "Downloaded $FILE"
+    fi
+}
+
+# Function to extract files only if they haven't been extracted
+safe_extract() {
+    ARCHIVE=$1
+    DIR=$2
+    if [ -d "$DIR" ]; then
+        log_message "Directory $DIR already exists. Skipping extraction."
+    else
+        log_message "Extracting $ARCHIVE..."
+        tar -xzf "$ARCHIVE" | tee -a "$LOGFILE"
+        check_success "Extracted $ARCHIVE"
+    fi
+}
+
+# Function to git clone only if the directory doesn't exist
+safe_git_clone() {
+    REPO_URL=$1
+    DIR=$2
+    if [ -d "$DIR" ]; then
+        log_message "Directory $DIR already exists. Skipping git clone."
+    else
+        log_message "Cloning repository from $REPO_URL..."
+        git clone "$REPO_URL" "$DIR" | tee -a "$LOGFILE"
+        check_success "Cloned repository from $REPO_URL"
+    fi
+}
+
+# Function to add Snort to PATH based on shell type (bash, zsh, etc.)
+add_to_path() {
+    SHELL_TYPE=$(basename "$SHELL")
+    case $SHELL_TYPE in
+        bash)
+            CONFIG_FILE=~/.bashrc
+            ;;
+        zsh)
+            CONFIG_FILE=~/.zshrc
+            ;;
+        *)
+            CONFIG_FILE=~/.profile
+            ;;
+    esac
+
+    log_message "Adding Snort to PATH in $CONFIG_FILE"
+    if ! grep -q "/usr/local/snort/bin" "$CONFIG_FILE"; then
+        echo 'export PATH=/usr/local/snort/bin:$PATH' >> "$CONFIG_FILE"
+        source "$CONFIG_FILE"
+        log_message "Snort added to PATH. You may need to restart your terminal."
+    else
+        log_message "Snort is already in your PATH."
+    fi
+}
+
+# Function to check for and fix executable permission for Snort
+check_snort_binary() {
+    log_message "Checking Snort binary..."
+    if [ -f "$SNORT_BIN" ]; then
+        log_message "Snort binary found at $SNORT_BIN"
+
+        if [ -x "$SNORT_BIN" ]; then
+            log_message "Snort binary is executable."
+        else
+            log_message "Snort binary is not executable. Setting executable permissions."
+            chmod +x "$SNORT_BIN"
+            check_success "Permissions updated"
+        fi
+
+        # Run Snort to check version
+        log_message "Running Snort to check version:"
+        "$SNORT_BIN" -V | tee -a "$LOGFILE"
+    else
+        log_message "Snort binary not found. Please check the installation."
+        exit 1
+    fi
+}
+
+# Start installation process
+log_message "Starting installation process..."
+
+# Install essential packages
 sudo apt update
-sudo apt install g++ -y
+sudo apt install -y cmake git g++ build-essential autoconf libssl-dev libpthread-stubs0-dev automake libtool \
+libgtk2.0-dev libglib2.0-dev libcmocka-dev flex hwloc libhwloc-dev luajit libluajit-5.1-dev pkg-config tcpdump libpcap-dev zlib1g \
+openssl xz-utils | tee -a "$LOGFILE"
+check_success "Essential packages installed"
 
-# Install dependiences
-sudo apt install  openssl* libssl-dev build-essential autoconf check libpthread-stubs0-dev automake libtool libgtk2.0-dev libglib2.0-dev libcmocka* flex hwloc libhwloc* luajit libluajit-* pkg-config tcpdump libpcap* zlib1g -y
-
-mkdir ~/snort_src
+# Create directory
+log_message "Creating snort_src directory..."
+mkdir -p ~/snort_src | tee -a "$LOGFILE"
+check_success "Directory created"
 cd ~/snort_src
 
 # Install Tcmalloc - gperftools
-cd ~/snort_src
-wget https://github.com/gperftools/gperftools/releases/download/gperftools-2.15/gperftools-2.15.tar.gz
-tar -xzf gperftools-2.15.tar.gz
-cd ~/snort_src/gperftools-2.15/
-./configure
-make
-sudo make install
+log_message "Installing Tcmalloc (gperftools)..."
+safe_wget "https://github.com/gperftools/gperftools/releases/download/gperftools-2.15/gperftools-2.15.tar.gz" "gperftools-2.15.tar.gz"
+safe_extract "gperftools-2.15.tar.gz" "gperftools-2.15"
+cd gperftools-2.15/
+./configure | tee -a "$LOGFILE"
+check_success "gperftools configured"
+make | tee -a "$LOGFILE"
+check_success "gperftools compiled"
+sudo make install | tee -a "$LOGFILE"
+check_success "gperftools installed"
 
 # Install dnet
+log_message "Installing dnet..."
 cd ~/snort_src
-wget https://github.com/ofalk/libdnet/archive/refs/tags/libdnet-1.18.0.tar.gz
-tar -xzf libdnet-1.18.0.tar.gz 
-cd ~/snort_src/libdnet-libdnet-1.18.0/
-./configure
-make
-sudo make install
-
-# pcre
-cd ~/snort_src
-wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.44/pcre2-10.44.tar.gz
-tar -xzf pcre2-10.44.tar.gz
-cd ~/snort_src/pcre2-10.44
-./configure
-make
-sudo make install
+safe_wget "https://github.com/ofalk/libdnet/archive/refs/tags/libdnet-1.18.0.tar.gz" "libdnet-1.18.0.tar.gz"
+safe_extract "libdnet-1.18.0.tar.gz" "libdnet-libdnet-1.18.0"
+cd libdnet-libdnet-1.18.0/
+./configure | tee -a "$LOGFILE"
+check_success "dnet configured"
+make | tee -a "$LOGFILE"
+check_success "dnet compiled"
+sudo make install | tee -a "$LOGFILE"
+check_success "dnet installed"
 
 # Install libdaq
+log_message "Installing libdaq..."
 cd ~/snort_src
-git clone https://github.com/snort3/libdaq.git
-cd ~/snort_src/libdaq/
-./bootstrap
-./configure
-make
-sudo make install
-sudo ldconfig
+safe_git_clone "https://github.com/snort3/libdaq.git" "libdaq"
+cd libdaq/
+./bootstrap | tee -a "$LOGFILE"
+check_success "libdaq bootstrapped"
+./configure | tee -a "$LOGFILE"
+check_success "libdaq configured"
+make | tee -a "$LOGFILE"
+check_success "libdaq compiled"
+sudo make install | tee -a "$LOGFILE"
+sudo ldconfig | tee -a "$LOGFILE"
+check_success "libdaq installed"
 
-# Install optional packages
+# Optional packages
+log_message "Installing optional packages..."
+sudo apt install ascii asciidoc cpputest asciidoc-dblatex dblatex dblatex-doc libboost-dev libsqlite3-dev libhyperscan-dev libunwind8 libunwind-dev source-highlight w3m uuid-runtime -y | tee -a "$LOGFILE"
+check_success "Optional packages installed"
 
-# Asciidoc
-sudo apt install ascii asciidoc -y
+# Check Snort binary
+check_snort_binary
 
-# Cpputest
-sudo apt-get install cpputest -y
-
-# dblatex
-sudo apt install asciidoc-dblatex dblatex dblatex-doc -y
-
-# hyperscan
-sudo apt install debhelper libboost-dev libsqlite3-dev pkg-config po-debconf python ragel libhyperscan-dev libhyperscan4 -y
-
-# iconv
-cd ~/snort_src/
-wget https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz
-tar -xzf libiconv-1.17.tar.gz
-cd ~/snort_src/libiconv-1.17
-./configure
-make
-sudo make install
-
-# libml
-sudo apt install libmlv3 libmlv3-dev -y
-
-# libunwind
-sudo apt install libunwind8 libunwind-dev -y
-
-# lzma
-sudo apt install xz-utils liblzma* -y
-
-# source-highlight w3m uuid
-sudo apt install source-highlight w3m uuid-runtime -y
-
-# SNORT
-cd ~/snort_src/
-wget https://github.com/snort3/snort3/archive/refs/tags/3.3.4.0.tar.gz
-tar -xzf 3.3.4.0.tar.gz 
-cd ~/snort_src/snort3-3.3.4.0/
-./configure_cmake.sh
-cd ~/snort_src/snort3-3.3.4.0/build
-make -j $(nproc)
-sudo make install
-
-#!/bin/bash
-
-# Define the path to the Snort binary
-SNORT_BIN="/usr/local/snort/bin/snort"
-
-# Function to print messages
-print_message() {
-    echo -e "\033[1;34m$1\033[0m" # Blue color for messages
-}
-
-# Check if Snort binary exists
-if [ -f "$SNORT_BIN" ]; then
-    print_message "Snort binary found at $SNORT_BIN"
-    
-    # Check if the binary is executable
-    if [ -x "$SNORT_BIN" ]; then
-        print_message "Snort binary is executable."
-    else
-        print_message "Snort binary is not executable. Setting executable permissions."
-        chmod +x "$SNORT_BIN"
-        print_message "Permissions updated."
-    fi
-
-    # Run Snort to check the version
-    print_message "Running Snort to check version:"
-    "$SNORT_BIN" -V
-
-    # Optionally, add Snort to the PATH
-    read -p "Do you want to add Snort to your PATH? (y/n) " response
-    if [[ "$response" == "y" || "$response" == "Y" ]]; then
-        # Add Snort to PATH in .bashrc
-        if ! grep -q "/usr/local/snort/bin" ~/.bashrc; then
-            echo 'export PATH=/usr/local/snort/bin:$PATH' >> ~/.bashrc
-            source ~/.bashrc
-            print_message "Snort added to PATH. You may need to restart your terminal."
-        else
-            print_message "Snort is already in your PATH."
-        fi
-    else
-        print_message "Snort was not added to PATH."
-    fi
-
+# Prompt to add Snort to PATH
+log_message "Prompting to add Snort to PATH"
+read -p "Do you want to add Snort to your PATH? (y/n) " response
+if [[ "$response" == "y" || "$response" == "Y" ]]; then
+    add_to_path
 else
-    print_message "Snort binary not found at $SNORT_BIN. Please check the installation."
-    exit 1
+    log_message "Snort was not added to PATH."
 fi
 
+log_message "Installation process completed."
