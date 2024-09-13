@@ -109,12 +109,44 @@ check_snort_binary() {
 # Start installation process
 log_message "Starting installation process..."
 
+# APT update
+clear
+cat << "EOF"
+     **     *******  **********   **     **              **             **          
+    ****   /**////**/////**///   /**    /** ******      /**            /**          
+   **//**  /**   /**    /**      /**    /**/**///**     /**  ******   ******  ***** 
+  **  //** /*******     /**      /**    /**/**  /**  ****** //////** ///**/  **///**
+ **********/**////      /**      /**    /**/******  **///**  *******   /**  /*******
+/**//////**/**          /**      /**    /**/**///  /**  /** **////**   /**  /**//// 
+/**     /**/**          /**      //******* /**     //******//********  //** //******
+//      // //           //        ///////  //       //////  ////////    //   ////// 
+
+
+EOF
+
+log_message "APT update ..."
+sudo apt-get update && sudo apt-get full-upgrade -y && sudo apt-get autoclean && sudo apt-get autoremove -y | tee -a "$LOGFILE"
+check_success "update success"
+
 # Install snap and cmake
+clear
+cat << "EOF"
+   ******                        **            
+  **////**                      /**            
+ **    //  **********   ******  /**  **  ***** 
+/**       //**//**//** //////** /** **  **///**
+/**        /** /** /**  ******* /****  /*******
+//**    ** /** /** /** **////** /**/** /**//// 
+ //******  *** /** /**//********/**//**//******
+  //////  ///  //  //  //////// //  //  ////// 
+
+
+EOF
+
 log_message "Installing snap..."
-sudo apt update
 sudo apt install -y snap snapd | tee -a "$LOGFILE"
 sudo systemctl start snapd
-sudo systemctl snable snapd
+sudo systemctl enable snapd
 check_success "Snap installed"
 
 log_message "Installing cmake via snap..."
@@ -122,21 +154,58 @@ sudo snap install cmake --classic | tee -a "$LOGFILE"
 check_success "CMake installed via snap"
 
 # Install git
-log_message "APT update ..."
-sudo apt-get update && sudo apt-get full-upgrade -y && sudo apt-get autoclean && sudo apt-get autoremove -y | tee -a "$LOGFILE"
-check_success "update success"
+clear
+cat << "EOF"
+   ********  ** **********
+  **//////**/**/////**/// 
+ **      // /**    /**    
+/**         /**    /**    
+/**    *****/**    /**    
+//**  ////**/**    /**    
+ //******** /**    /**    
+  ////////  //     //     
 
-# Install git
+
+EOF
+
 log_message "Installing git ..."
 sudo apt-get install git -y | tee -a "$LOGFILE"
 check_success "git installed"
 
 # Install g++
+clear
+cat << "EOF"
+   ********                       
+  **//////**      *          *    
+ **      //      /*         /*    
+/**           *********  *********
+/**    ***** /////*///  /////*/// 
+//**  ////**     /*         /*    
+ //********      /          /     
+  ////////                        
+
+
+EOF
+
 log_message "Installing g++ ..."
 sudo apt-get install g++ -y | tee -a "$LOGFILE"
 check_success "g++ installed"
 
 # Install dependiences
+clear
+cat << "EOF"
+ *******                                         ** **                                         
+/**////**          ******                       /**//                                          
+/**    /**  ***** /**///**  *****  *******      /** **  *****  *******   *****   *****   ******
+/**    /** **///**/**  /** **///**//**///**  ******/** **///**//**///** **///** **///** **//// 
+/**    /**/*******/****** /******* /**  /** **///**/**/******* /**  /**/**  // /*******//***** 
+/**    ** /**//// /**///  /**////  /**  /**/**  /**/**/**////  /**  /**/**   **/**////  /////**
+/*******  //******/**     //****** ***  /**//******/**//****** ***  /**//***** //****** ****** 
+///////    ////// //       ////// ///   //  ////// //  ////// ///   //  /////   ////// //////  
+
+
+EOF
+
 log_message "Install dependiences ..."
 sudo apt-get install  openssl* libssl-dev build-essential autoconf check libpthread-stubs0-dev automake libtool libgtk2.0-dev libglib2.0-dev libcmocka* flex hwloc libhwloc* luajit libluajit-* pkg-config tcpdump libpcap* zlib1g -y | tee -a "$LOGFILE"
 check_success "dependiences install success"
@@ -148,6 +217,20 @@ check_success "Directory created"
 cd ~/snort_src
 
 # Install Tcmalloc - gperftools
+clear 
+cat << "EOF"
+                                  ****   **                      **        
+  *****  ******                  /**/   /**                     /**        
+ **///**/**///**  *****  ****** ****** ******  ******   ******  /**  ******
+/**  /**/**  /** **///**//**//*///**/ ///**/  **////** **////** /** **//// 
+//******/****** /******* /** /   /**    /**  /**   /**/**   /** /**//***** 
+ /////**/**///  /**////  /**     /**    /**  /**   /**/**   /** /** /////**
+  ***** /**     //******/***     /**    //** //****** //******  *** ****** 
+ /////  //       ////// ///      //      //   //////   //////  /// //////  
+
+
+EOF
+
 log_message "Installing Tcmalloc (gperftools)..."
 safe_wget "https://github.com/gperftools/gperftools/releases/download/gperftools-2.15/gperftools-2.15.tar.gz" "gperftools-2.15.tar.gz"
 safe_extract "gperftools-2.15.tar.gz" "gperftools-2.15"
@@ -160,6 +243,20 @@ sudo make install | tee -a "$LOGFILE"
 check_success "gperftools installed"
 
 # Install dnet
+clear
+cat << "EOF"
+      **                    **  
+     /**                   /**  
+     /** *******   *****  ******
+  ******//**///** **///**///**/ 
+ **///** /**  /**/*******  /**  
+/**  /** /**  /**/**////   /**  
+//****** ***  /**//******  //** 
+ ////// ///   //  //////    //  
+
+
+EOF
+
 log_message "Installing dnet..."
 cd ~/snort_src
 safe_wget "https://github.com/ofalk/libdnet/archive/refs/tags/libdnet-1.18.0.tar.gz" "libdnet-1.18.0.tar.gz"
@@ -173,6 +270,20 @@ sudo make install | tee -a "$LOGFILE"
 check_success "dnet installed"
 
 # Install pcre
+clear
+cat << "EOF"
+                               
+ ******                        
+/**///**  *****  ******  ***** 
+/**  /** **///**//**//* **///**
+/****** /**  //  /** / /*******
+/**///  /**   ** /**   /**//// 
+/**     //***** /***   //******
+//       /////  ///     ////// 
+
+
+EOF
+
 log_message "Installing pcre..."
 cd ~/snort_src
 safe_wget "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.44/pcre2-10.44.tar.gz" "pcre2-10.44.tar.gz"
@@ -186,6 +297,20 @@ sudo make install | tee -a "$LOGFILE"
 check_success "pcre installed"
 
 # Install libdaq
+clear
+cat << "EOF"
+  ** ** **           **                  
+ /**// /**          /**            ****  
+ /** **/**          /**  ******   **//** 
+ /**/**/******   ****** //////** /** /** 
+ /**/**/**///** **///**  ******* //***** 
+ /**/**/**  /**/**  /** **////**  ////** 
+ ***/**/****** //******//********    /***
+/// // /////    //////  ////////     /// 
+
+
+EOF
+
 log_message "Installing libdaq..."
 cd ~/snort_src
 safe_git_clone "https://github.com/snort3/libdaq.git" "libdaq"
@@ -200,29 +325,101 @@ sudo make install | tee -a "$LOGFILE"
 sudo ldconfig | tee -a "$LOGFILE"
 check_success "libdaq installed"
 
+sudo ldconfig
+
 # Install optional packages
 
 # Install Asciidoc
+clear
+cat << "EOF"
+     **                     ** **   *******     *******     ****** 
+    ****                   // //   /**////**   **/////**   **////**
+   **//**    ******  *****  ** **  /**    /** **     //** **    // 
+  **  //**  **////  **///**/**/**  /**    /**/**      /**/**       
+ **********//***** /**  // /**/**  /**    /**/**      /**/**       
+/**//////** /////**/**   **/**/**  /**    ** //**     ** //**    **
+/**     /** ****** //***** /**/**  /*******   //*******   //****** 
+//      // //////   /////  // //   ///////     ///////     //////  
+
+
+EOF
+
 log_message "Installing asciidoc ..."
 sudo apt-get install ascii asciidoc -y | tee -a "$LOGFILE"
 check_success "asciidoc installed"
 
 # Install Cpputest
+clear
+cat << "EOF"
+   ******                              **                     **  
+  **////** ******  ******             /**                    /**  
+ **    // /**///**/**///** **   **   ******  *****   ****** ******
+/**       /**  /**/**  /**/**  /**  ///**/  **///** **//// ///**/ 
+/**       /****** /****** /**  /**    /**  /*******//*****   /**  
+//**    **/**///  /**///  /**  /**    /**  /**////  /////**  /**  
+ //****** /**     /**     //******    //** //****** ******   //** 
+  //////  //      //       //////      //   ////// //////     //  
+
+
+EOF
+
 log_message "Installing cpputest ..."
 sudo apt-get install cpputest -y | tee -a "$LOGFILE"
 check_success "cpputest installed"
 
 # Install Dblatex
+clear
+cat << "EOF"
+ *******   ******    **             **                  
+/**////** /*////**  /**            /**                  
+/**    /**/*   /**  /**  ******   ******  *****  **   **
+/**    /**/******   /** //////** ///**/  **///**//** ** 
+/**    /**/*//// ** /**  *******   /**  /******* //***  
+/**    ** /*    /** /** **////**   /**  /**////   **/** 
+/*******  /*******  ***//********  //** //****** ** //**
+///////   ///////  ///  ////////    //   ////// //   // 
+
+
+EOF
+
 log_message "Installing dblatex ..."
 sudo apt-get install asciidoc-dblatex dblatex dblatex-doc -y | tee -a "$LOGFILE"
 check_success "dblatex installed"
 
 # Install Hyperscan
+clear
+cat << "EOF"
+ **      **                                                                   
+/**     /**  **   ** ******                                                   
+/**     /** //** ** /**///**  *****  ******  ******  *****   ******   ******* 
+/**********  //***  /**  /** **///**//**//* **////  **///** //////** //**///**
+/**//////**   /**   /****** /******* /** / //***** /**  //   *******  /**  /**
+/**     /**   **    /**///  /**////  /**    /////**/**   ** **////**  /**  /**
+/**     /**  **     /**     //******/***    ****** //***** //******** ***  /**
+//      //  //      //       ////// ///    //////   /////   //////// ///   // 
+
+
+EOF
+
 log_message "Installing Hyperscan ..."
 sudo apt-get install debhelper libboost-dev libsqlite3-dev pkg-config po-debconf python ragel libhyperscan-dev libhyperscan4 -y | tee -a "$LOGFILE"
 check_success "Hyperscan installed"
 
 # Install Iconv
+clear
+cat << "EOF"
+ **       ** **        **                                   
+/**      // /**       /**                                   
+/**       **/**       /**  *****   ******  *******  **    **
+/**      /**/******   /** **///** **////**//**///**/**   /**
+/**      /**/**///**  /**/**  // /**   /** /**  /**//** /** 
+/**      /**/**  /**  /**/**   **/**   /** /**  /** //****  
+/********/**/******   /**//***** //******  ***  /**  //**   
+//////// // /////     //  /////   //////  ///   //    //    
+
+
+EOF
+
 log_message "Installing Iconv ..."
 cd ~/snort_src/
 safe_wget "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz" "libiconv-1.17.tar.gz"
@@ -236,27 +433,96 @@ sudo make install | tee -a "$LOGFILE"
 check_success "Iconv installed"
 
 # Install Libml
+clear
+cat << "EOF"
+ **       ** **                   **
+/**      // /**                  /**
+/**       **/**      **********  /**
+/**      /**/****** //**//**//** /**
+/**      /**/**///** /** /** /** /**
+/**      /**/**  /** /** /** /** /**
+/********/**/******  *** /** /** ***
+//////// // /////   ///  //  // /// 
+
+
+EOF
+
 log_message "Installing Libml ..."
 sudo apt-get install libmlv3 libmlv3-dev -y | tee -a "$LOGFILE"
 check_success "Libml installed"
 
 # Install Libunwind
+clear
+cat << "EOF"
+ **       ** **                                    **               **
+/**      // /**                                   //               /**
+/**       **/**        **   ** *******  ***     ** ** *******      /**
+/**      /**/******   /**  /**//**///**//**  * /**/**//**///**  ******
+/**      /**/**///**  /**  /** /**  /** /** ***/**/** /**  /** **///**
+/**      /**/**  /**  /**  /** /**  /** /****/****/** /**  /**/**  /**
+/********/**/******   //****** ***  /** ***/ ///**/** ***  /**//******
+//////// // /////      ////// ///   // ///    /// // ///   //  ////// 
+
+
+EOF
+
 log_message "Installing Libunwind ..."
 sudo apt-get install libunwind8 libunwind-dev -y | tee -a "$LOGFILE"
 check_success "Libunwind installed"
 
 # Install Lzma
+clear
+cat << "EOF"
+ **                                   
+/**                                   
+/**       ****** **********   ******  
+/**      ////** //**//**//** //////** 
+/**         **   /** /** /**  ******* 
+/**        **    /** /** /** **////** 
+/******** ****** *** /** /**//********
+//////// ////// ///  //  //  //////// 
+
+
+EOF
+
 log_message "Installing Lzma ..."
 sudo apt-get install xz-utils liblzma* -y | tee -a "$LOGFILE"
 check_success "Lzma installed"
 
 # Install source-highlight w3m uuid
+clear
+cat << "EOF"
+                                               
+                                               
+  ******           ***     **           **   **
+ **////    *****  //**  * /**   *****  /**  /**
+//*****   /////    /** ***/**  /////   /**  /**
+ /////**           /****/****          /**  /**
+ ******            ***/ ///**          //******
+//////            ///    ///            ////// 
+
+
+EOF
+
 log_message "Installing source-highlight w3m uuid ..."
 sudo apt-get install source-highlight w3m uuid-runtime -y | tee -a "$LOGFILE"
 check_success "source-highlight w3m uuid installed"
 
-# Install Snort
-log_message "Installing Snort..."
+# Install Snort3
+clear
+cat << "EOF"
+ **                    **              **  **    ********                            **    **** 
+/**                   /**             /** /**   **//////                            /**   */// *
+/** *******   ****** ******  ******   /** /**  /**        *******   ******  ****** ******/    /*
+/**//**///** **//// ///**/  //////**  /** /**  /*********//**///** **////**//**//*///**/    *** 
+/** /**  /**//*****   /**    *******  /** /**  ////////** /**  /**/**   /** /** /   /**    /// *
+/** /**  /** /////**  /**   **////**  /** /**         /** /**  /**/**   /** /**     /**   *   /*
+/** ***  /** ******   //** //******** *** ***   ********  ***  /**//****** /***     //** / **** 
+// ///   // //////     //   //////// /// ///   ////////  ///   //  //////  ///       //   ////  
+
+
+EOF
+log_message "Installing Snort3..."
 cd ~/snort_src
 safe_wget "https://github.com/snort3/snort3/archive/refs/tags/3.3.4.0.tar.gz" "3.3.4.0.tar.gz"
 safe_extract "3.3.4.0.tar.gz" "snort3-3.3.4.0"
@@ -281,4 +547,28 @@ else
     log_message "Snort was not added to PATH."
 fi
 
+# Ask user if they want to add Snort to systemd
+read -p "Would you like to add Snort to systemd for easier management? (y/n): " ADD_TO_SYSTEMD
+if [[ "$ADD_TO_SYSTEMD" =~ ^[Yy]$ ]]; then
+    log_message "Adding Snort to systemd..."
+    sudo bash -c 'cat <<EOF > /etc/systemd/system/snort.service
+[Unit]
+Description=Snort IDS/IPS
+After=syslog.target network.target
+
+[Service]
+ExecStart=/usr/local/snort/bin/snort -c /usr/local/snort/etc/snort/snort.lua -i eth0
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF'
+    sudo systemctl daemon-reload
+    sudo systemctl enable snort
+    check_success "Snort added to systemd"
+else
+    log_message "Skipped adding Snort to systemd."
+fi
+
 log_message "Installation process completed."
+
