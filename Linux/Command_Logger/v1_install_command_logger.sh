@@ -2,12 +2,6 @@
 
 # ================== CẤU HÌNH ==================
 
-# Kiểm tra quyền root
-if [ "$EUID" -ne 0 ]; then
-    echo "Vui lòng chạy script với quyền root."
-    exit 1
-fi
-
 # Thư mục và file log
 LOG_DIR="/var/log/command_logs"
 LOG_FILE="$LOG_DIR/commands.log"
