@@ -19,6 +19,9 @@ log_command() {
     # Lấy thư mục hiện tại
     PWD_DIR=$(pwd)
     
+    # Lấy địa chỉ IP của kết nối SSH (nếu có)
+    IP_ADDRESS=$(who am i | awk "{print \$5}" | tr -d "()")
+    
     # Lấy lệnh vừa thực hiện
     # Đối với Bash
     if [ -n "$BASH_VERSION" ]; then
@@ -30,8 +33,11 @@ log_command() {
         COMMAND=$(fc -ln -1)
     fi
     
+    # Lấy mã thoát của lệnh vừa thực hiện
+    EXIT_CODE=$?
+    
     # Ghi thông tin vào file log
-    echo "$TIMESTAMP | $USER_NAME | $PWD_DIR | $COMMAND" >> /var/log/command_logs/commands.log
+    echo "$TIMESTAMP | $USER_NAME | $PWD_DIR | $IP_ADDRESS | $COMMAND | Exit Code: $EXIT_CODE" >> /var/log/command_logs/commands.log
 }
 
 # Thêm hàm vào PROMPT_COMMAND cho bash

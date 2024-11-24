@@ -1,48 +1,41 @@
-#!/bin/bash
-
-# Đường dẫn đến file log
-LOGFILE="/var/log/command_logs.log"
-
-# Hàm ghi log
+# Hàm ghi log lệnh
 log_command() {
-    # Bỏ qua các lệnh trống hoặc lệnh log_command để tránh loop
-    [[ -z "$BASH_COMMAND" || "$BASH_COMMAND" == "log_command" ]] && return
-
-    # Lấy thông tin lệnh
-    local cmd
-    if [ -n "$BASH_COMMAND" ]; then
-        cmd="$BASH_COMMAND"
-    elif [ -n "$ZSH_VERSION" ]; then
-        cmd="$1"
-    else
-        cmd="$(history 1 | sed 's/^ *[0-9]* *//')"
+    # Lấy thời gian hiện tại
+    TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
+    
+    # Lấy tên người dùng
+    USER_NAME=$(whoami)
+    
+    # Lấy thư mục hiện tại
+    PWD_DIR=$(pwd)
+    
+    # Lấy địa chỉ IP của kết nối SSH (nếu có)
+    IP_ADDRESS=$(who am i | awk "{print \$5}" | tr -d "()")
+    
+    # Lấy lệnh vừa thực hiện
+    # Đối với Bash
+    if [ -n "$BASH_VERSION" ]; then
+        COMMAND=$(history 1 | sed "s/^ *[0-9]* *//")
     fi
-
-    # Lấy thông tin khác
-    local time user pwd
-    time=$(date "+%Y-%m-%d %H:%M:%S")
-    user=$(whoami)
-    pwd=$(pwd)
-
-    # Ghi vào file log
-    echo "$time | $user | $pwd | \"$cmd\"" >> "$LOGFILE"
+    
+    # Đối với Zsh
+    if [ -n "$ZSH_VERSION" ]; then
+        COMMAND=$(fc -ln -1)
+    fi
+    
+    # Lấy mã thoát của lệnh vừa thực hiện
+    EXIT_CODE=$?
+    
+    # Ghi thông tin vào file log
+    echo "$TIMESTAMP | $USER_NAME | $PWD_DIR | $IP_ADDRESS | $COMMAND | Exit Code: $EXIT_CODE" >> /var/log/command_logs/commands.log
 }
 
-# Tránh lặp vô hạn khi source nhiều lần
-if [ -z "$COMMAND_LOGGER_SOURCED" ]; then
-    export COMMAND_LOGGER_SOURCED=1
+# Thêm hàm vào PROMPT_COMMAND cho bash
+if [ -n "$BASH_VERSION" ]; then
+    PROMPT_COMMAND="log_command; $PROMPT_COMMAND"
+fi
 
-    # Cấu hình cho từng shell
-    if [ -n "$BASH_VERSION" ]; then
-        # Bash shell
-        # Gọi log_command trước mỗi lệnh được thực thi
-        trap 'log_command' DEBUG
-    elif [ -n "$ZSH_VERSION" ]; then
-        # Zsh shell
-        autoload -Uz add-zsh-hook
-        log_preexec() {
-            log_command "$1"
-        }
-        add-zsh-hook preexec log_preexec
-    fi
+# Thêm hàm vào precmd cho zsh
+if [ -n "$ZSH_VERSION" ]; then
+    precmd_functions+=(log_command)
 fi
