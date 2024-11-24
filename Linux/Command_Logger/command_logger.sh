@@ -15,12 +15,12 @@ log_command() {
     # Lấy lệnh vừa thực hiện
     # Đối với Bash
     if [ -n "$BASH_VERSION" ]; then
-        COMMAND="$BASH_COMMAND"
+        COMMAND=$(history 1 | sed "s/^ *[0-9]* *//")
     fi
     
     # Đối với Zsh
     if [ -n "$ZSH_VERSION" ]; then
-        COMMAND="$BUFFER"
+        COMMAND=$(fc -ln -1)
     fi
     
     # Lấy mã thoát của lệnh vừa thực hiện
