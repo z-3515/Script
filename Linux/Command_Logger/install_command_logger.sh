@@ -1,108 +1,93 @@
 #!/bin/bash
 
-# Kiểm tra quyền root
-if [ "$EUID" -ne 0 ]; then
-    echo "Vui lòng chạy script với quyền root."
-    exit 1
-fi
+# ================== CẤU HÌNH ==================
 
-# Đường dẫn đến file log
-LOGFILE="/var/log/command_logs.log"
+# Thư mục và file log
+LOG_DIR="/var/log/command_logs"
+LOG_FILE="$LOG_DIR/commands.log"
 
-# Tạo file log nếu chưa tồn tại và thiết lập quyền
-if [ ! -f "$LOGFILE" ]; then
-    touch "$LOGFILE"
-fi
-chmod 622 "$LOGFILE"  # rw--w--w-
-chown root:root "$LOGFILE"
-
-# Tạo script logger chính
-cat << 'EOF' > /usr/local/bin/command_logger.sh
-#!/bin/bash
-
-# Đường dẫn đến file log
-LOGFILE="/var/log/command_logs.log"
-
-# Hàm ghi log
+# Cấu hình logging script
+LOGGING_SCRIPT='
+# Hàm ghi log lệnh
 log_command() {
-    # Bỏ qua các lệnh trống hoặc lệnh log_command để tránh loop
-    [[ -z "$BASH_COMMAND" || "$BASH_COMMAND" == "log_command" ]] && return
-
-    # Lấy thông tin lệnh
-    local cmd
-    if [ -n "$BASH_COMMAND" ]; then
-        cmd="$BASH_COMMAND"
-    elif [ -n "$ZSH_VERSION" ]; then
-        cmd="$1"
-    else
-        cmd="$(history 1 | sed 's/^ *[0-9]* *//')"
+    # Lấy thời gian hiện tại
+    TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
+    
+    # Lấy tên người dùng
+    USER_NAME=$(whoami)
+    
+    # Lấy thư mục hiện tại
+    PWD_DIR=$(pwd)
+    
+    # Lấy lệnh vừa thực hiện
+    # Đối với Bash
+    if [ -n "$BASH_VERSION" ]; then
+        COMMAND=$(history 1 | sed "s/^ *[0-9]* *//")
     fi
-
-    # Lấy thông tin khác
-    local time user pwd
-    time=$(date "+%Y-%m-%d %H:%M:%S")
-    user=$(whoami)
-    pwd=$(pwd)
-
-    # Ghi vào file log
-    echo "$time | $user | $pwd | \"$cmd\"" >> "$LOGFILE"
+    
+    # Đối với Zsh
+    if [ -n "$ZSH_VERSION" ]; then
+        COMMAND=$(fc -ln -1)
+    fi
+    
+    # Ghi thông tin vào file log
+    echo "$TIMESTAMP | $USER_NAME | $PWD_DIR | $COMMAND" >> /var/log/command_logs/commands.log
 }
 
-# Tránh lặp vô hạn khi source nhiều lần
-if [ -z "$COMMAND_LOGGER_SOURCED" ]; then
-    export COMMAND_LOGGER_SOURCED=1
+# Thêm hàm vào PROMPT_COMMAND cho bash
+if [ -n "$BASH_VERSION" ]; then
+    PROMPT_COMMAND="log_command; $PROMPT_COMMAND"
+fi
 
-    # Cấu hình cho từng shell
-    if [ -n "$BASH_VERSION" ]; then
-        # Bash shell
-        # Gọi log_command trước mỗi lệnh được thực thi
-        trap 'log_command' DEBUG
-    elif [ -n "$ZSH_VERSION" ]; then
-        # Zsh shell
-        autoload -Uz add-zsh-hook
-        log_preexec() {
-            log_command "$1"
-        }
-        add-zsh-hook preexec log_preexec
+# Thêm hàm vào precmd cho zsh
+if [ -n "$ZSH_VERSION" ]; then
+    precmd_functions+=(log_command)
+fi
+'
+
+# ================== THỰC THI ==================
+
+# Tạo thư mục log nếu chưa tồn tại
+if [ ! -d "$LOG_DIR" ]; then
+    mkdir -p "$LOG_DIR"
+    chmod 777 "$LOG_DIR"
+    echo "Đã tạo thư mục log tại $LOG_DIR"
+fi
+
+# Tạo file log nếu chưa tồn tại
+if [ ! -f "$LOG_FILE" ]; then
+    touch "$LOG_FILE"
+    chmod 666 "$LOG_FILE"
+    echo "Đã tạo file log tại $LOG_FILE"
+fi
+
+# Hàm kiểm tra và thêm logging script vào file cấu hình
+add_logging_to_config() {
+    local config_file=$1
+    local shell_name=$2
+
+    if grep -q "log_command" "$config_file"; then
+        echo "Logging đã được thiết lập trong $config_file"
+    else
+        echo "$LOGGING_SCRIPT" >> "$config_file"
+        echo "Đã thêm cấu hình logging vào $config_file cho $shell_name"
     fi
-fi
-EOF
+}
 
-# Thiết lập quyền cho script logger
-chmod 755 /usr/local/bin/command_logger.sh
-chown root:root /usr/local/bin/command_logger.sh
-
-# Tạo script trong /etc/profile.d để load logger cho login shells
-cat << 'EOF' > /etc/profile.d/command_logger.sh
-# Source script logger cho login shells
-if [ -f /usr/local/bin/command_logger.sh ]; then
-    source /usr/local/bin/command_logger.sh
-fi
-EOF
-
-# Thiết lập quyền cho script trong /etc/profile.d
-chmod 644 /etc/profile.d/command_logger.sh
-chown root:root /etc/profile.d/command_logger.sh
-
-# Thêm vào /etc/bash.bashrc để load logger cho non-login shells
-if ! grep -q "command_logger.sh" /etc/bash.bashrc; then
-    echo "" >> /etc/bash.bashrc
-    echo "# Source command logger cho tất cả người dùng" >> /etc/bash.bashrc
-    echo "if [ -f /usr/local/bin/command_logger.sh ]; then" >> /etc/bash.bashrc
-    echo "    source /usr/local/bin/command_logger.sh" >> /etc/bash.bashrc
-    echo "fi" >> /etc/bash.bashrc
+# Cập nhật cấu hình cho Bash
+BASH_CONFIG="/etc/bash.bashrc"
+if [ -f "$BASH_CONFIG" ]; then
+    add_logging_to_config "$BASH_CONFIG" "Bash"
+else
+    echo "$BASH_CONFIG không tồn tại. Bỏ qua cấu hình cho Bash."
 fi
 
-# Thêm vào /etc/zsh/zshrc để load logger cho Zsh shells
-if [ -f /etc/zsh/zshrc ]; then
-    if ! grep -q "command_logger.sh" /etc/zsh/zshrc; then
-        echo "" >> /etc/zsh/zshrc
-        echo "# Source command logger cho tất cả người dùng" >> /etc/zsh/zshrc
-        echo "if [ -f /usr/local/bin/command_logger.sh ]; then" >> /etc/zsh/zshrc
-        echo "    source /usr/local/bin/command_logger.sh" >> /etc/zsh/zshrc
-        echo "fi" >> /etc/zsh/zshrc
-    fi
+# Cập nhật cấu hình cho Zsh
+ZSH_CONFIG="/etc/zsh/zshrc"
+if [ -f "$ZSH_CONFIG" ]; then
+    add_logging_to_config "$ZSH_CONFIG" "Zsh"
+else
+    echo "$ZSH_CONFIG không tồn tại. Bỏ qua cấu hình cho Zsh."
 fi
 
-echo "Cài đặt hệ thống ghi log các lệnh người dùng hoàn tất."
-echo "Vui lòng đăng xuất và đăng nhập lại để các thay đổi có hiệu lực."
+echo "Hoàn tất thiết lập ghi log lệnh cho tất cả người dùng."
